@@ -1,0 +1,11 @@
+section,key,value
+summary,date,2026-06-13
+summary,meal,晚餐
+summary,merchant,绿健食堂
+summary,totalPeople,0
+summary,totalPortions,0
+summary,totalAmount,0
+
+dishSummary,dishName,quantity
+
+employeeLine,labelCode,employeeName,department,addressShort,dishName,quantity,remark

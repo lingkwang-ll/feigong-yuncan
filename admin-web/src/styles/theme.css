@@ -1,0 +1,41 @@
+:root {
+  --fy-primary: #2d8f47;
+  --fy-accent: #f5a623;
+  --fy-bg: #f7f5f0;
+  --fy-card: #ffffff;
+  --fy-text: #333333;
+  --fy-text-secondary: #888888;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--fy-bg);
+  color: var(--fy-text);
+}
+
+.page-card {
+  background: var(--fy-card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--fy-primary);
+  --el-button-border-color: var(--fy-primary);
+}
+
+.el-menu:not(.el-menu--collapse) {
+  width: 220px;
+}

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>选择位置</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #F5F5F5;
+      overflow: hidden;
+    }
+    /* 隐藏高德 AutoComplete / 插件可能注入的 Back、返回按钮 */
+    .amap-sug-cancel,
+    .amap-lib-mobile-backbtn,
+    .amap-ui-mobi-nav,
+    .amap-ui-mobi-header,
+    [class*="backbtn"],
+    [class*="BackBtn"],
+    a[href="javascript:history.back()"] {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .page {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 100%;
+    }
+    .search-wrap {
+      position: relative;
+      z-index: 20;
+      flex-shrink: 0;
+      padding: 10px 14px 8px;
+      background: #F5F5F5;
+    }
+    .search-row { display: flex; gap: 8px; align-items: center; }
+    .search-input {
+      flex: 1;
+      height: 42px;
+      border: 1px solid #E8E8E8;
+      border-radius: 10px;
+      padding: 0 12px;
+      font-size: 14px;
+      background: #fff;
+      outline: none;
+    }
+    .search-input:focus { border-color: #1FA855; }
+    .btn-locate {
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid #1FA855;
+      border-radius: 10px;
+      background: #fff;
+      color: #1FA855;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tips-panel {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      top: 58px;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.08);
+      display: none;
+      z-index: 30;
+    }
+    .tips-panel.show { display: block; }
+    .tip-item { padding: 12px 14px; border-bottom: 1px solid #F0F0F0; cursor: pointer; }
+    .tip-item:last-child { border-bottom: none; }
+    .tip-item:active { background: #F5FBF7; }
+    .tip-name { font-size: 14px; color: #222; font-weight: 600; }
+    .tip-addr { font-size: 12px; color: #888; margin-top: 4px; }
+    .map-wrap {
+      flex: 1 1 auto;
+      position: relative;
+      min-height: 120px;
+      overflow: hidden;
+    }
+    #map { width: 100%; height: 100%; }
+    .center-pin {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -100%);
+      width: 32px;
+      height: 42px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .center-pin svg {
+      width: 32px;
+      height: 42px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.25));
+    }
+    .bottom {
+      flex-shrink: 0;
+      background: #fff;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,.06);
+      padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+      z-index: 15;
+    }
+    .card-title {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .place-row {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      line-height: 1.45;
+    }
+    .place-row .label {
+      flex-shrink: 0;
+      font-size: 13px;
+      color: #888;
+      width: 72px;
+    }
+    .place-row .value {
+      flex: 1;
+      font-size: 14px;
+      color: #222;
+      word-break: break-all;
+    }
+    .place-row.name-row .value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #222;
+    }
+    .place-row.addr-row .value {
+      font-size: 13px;
+      color: #666;
+    }
+    .place-row.addr-row .value.pending {
+      color: #1FA855;
+    }
+    .place-row.addr-row .value.empty {
+      color: #AAA;
+    }
+    .confirm-btn {
+      display: block;
+      margin-top: 14px;
+      width: 100%;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      background: #FF7A00;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .confirm-btn:active { opacity: 0.92; }
+    .confirm-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .error-banner {
+      display: none;
+      flex-shrink: 0;
+      margin: 0 14px 8px;
+      padding: 10px 12px;
+      background: #FFF3E6;
+      color: #C56A00;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .error-banner.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div id="errorBanner" class="error-banner"></div>
+    <div class="search-wrap">
+      <div class="search-row">
+        <input id="searchInput" class="search-input" type="text" placeholder="搜索公司、地址、POI" autocomplete="off" />
+        <button type="button" class="btn-locate" id="locateBtn">定位</button>
+      </div>
+      <div id="tipsPanel" class="tips-panel"></div>
+    </div>
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="center-pin" aria-hidden="true">
+        <svg viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0C7.716 0 1 6.716 1 15c0 10.5 15 27 15 27s15-16.5 15-27C31 6.716 24.284 0 16 0z" fill="#1FA855"/>
+          <circle cx="16" cy="15" r="6" fill="#fff"/>
+        </svg>
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="card-title">当前位置</div>
+      <div class="place-row name-row">
+        <span class="label">地点名：</span>
+        <span id="placeName" class="value">拖动地图选择位置</span>
+      </div>
+      <div class="place-row addr-row">
+        <span class="label">详细地址：</span>
+        <span id="placeAddr" class="value pending">正在解析地址...</span>
+      </div>
+      <button type="button" id="confirmBtn" class="confirm-btn">确认位置</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var KEY = params.get('key') || '';
+      var SECURITY = params.get('security') || '';
+      var initLat = parseFloat(params.get('lat')) || 31.230416;
+      var initLng = parseFloat(params.get('lng')) || 121.473701;
+
+      var map = null;
+      var autoComplete = null;
+      var placeSearch = null;
+      var geocoder = null;
+      var regeoTimer = null;
+      var mapReady = false;
+      var current = {
+        latitude: initLat,
+        longitude: initLng,
+        poiName: '',
+        addressText: '',
+        name: ''
+      };
+
+      var elName = document.getElementById('placeName');
+      var elAddr = document.getElementById('placeAddr');
+      var elConfirm = document.getElementById('confirmBtn');
+      var elTips = document.getElementById('tipsPanel');
+      var elError = document.getElementById('errorBanner');
+      var elSearch = document.getElementById('searchInput');
+
+      function showError(msg) {
+        elError.textContent = msg;
+        elError.classList.add('show');
+      }
+
+      function postToParent(action, payload) {
+        var msg = JSON.stringify({
+          source: 'feigong_map_picker',
+          action: action,
+          payload: payload || null
+        });
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(msg, '*');
+        }
+      }
+
+      function syncConfirmState() {
+        elConfirm.disabled = !mapReady;
+      }
+
+      function updateCard() {
+        var displayName = current.name || current.poiName || '拖动地图选择位置';
+        elName.textContent = displayName;
+
+        if (current.addressText && current.addressText.trim()) {
+          elAddr.textContent = current.addressText;
+          elAddr.className = 'value';
+        } else {
+          elAddr.textContent = '暂无详细地址';
+          elAddr.className = 'value empty';
+        }
+        syncConfirmState();
+      }
+
+      function setLoading(on) {
+        if (on) {
+          elAddr.textContent = '正在解析地址...';
+          elAddr.className = 'value pending';
+        } else {
+          updateCard();
+        }
+      }
+
+      function applyPick(name, poiName, addressText, lat, lng) {
+        current.latitude = lat;
+        current.longitude = lng;
+        current.poiName = poiName || name || '';
+        current.name = name || poiName || '';
+        current.addressText = addressText || poiName || name || '';
+        updateCard();
+      }
+
+      function parseRegeoResult(regeocode) {
+        var formatted = (regeocode && regeocode.formatted_address) || '';
+        var poiName = '';
+        var name = '';
+        if (regeocode && regeocode.pois && regeocode.pois.length > 0) {
+          poiName = regeocode.pois[0].name || '';
+          name = poiName;
+        }
+        if (!name && regeocode && regeocode.aois && regeocode.aois.length > 0) {
+          name = regeocode.aois[0].name || '';
+          poiName = poiName || name;
+        }
+        if (!name) name = formatted;
+        return { name: name, poiName: poiName || name, addressText: formatted || name };
+      }
+
+      function reverseGeocode(lat, lng) {
+        current.latitude = lat;
+        current.longitude = lng;
+        setLoading(true);
+
+        var done = function (parsed) {
+          setLoading(false);
+          applyPick(parsed.name, parsed.poiName, parsed.addressText, lat, lng);
+        };
+
+        var restUrl = 'https://restapi.amap.com/v3/geocode/regeo?key=' + encodeURIComponent(KEY)
+          + '&location=' + lng + ',' + lat
+          + '&extensions=all&radius=500&output=json';
+
+        fetch(restUrl)
+          .then(function (r) { return r.json(); })
+          .then(function (json) {
+            if (json && json.status === '1' && json.regeocode) {
+              done(parseRegeoResult(json.regeocode));
+            } else if (geocoder) {
+              geocoder.getAddress([lng, lat], function (status, result) {
+                if (status === 'complete' && result.regeocode) {
+                  done(parseRegeoResult(result.regeocode));
+                } else {
+                  done({ name: '选中位置', poiName: '选中位置', addressText: '' });
+                }
+              });
+            } else {
+              done({ name: '选中位置', poiName: '选中位置', addressText: '' });
+            }
+          })
+          .catch(function () {
+            if (geocoder) {
+              geocoder.getAddress([lng, lat], function (status, result) {
+                if (status === 'complete' && result.regeocode) {
+                  done(parseRegeoResult(result.regeocode));
+                } else {
+                  done({ name: '选中位置', poiName: '选中位置', addressText: '' });
+                }
+              });
+            } else {
+              done({ name: '选中位置', poiName: '选中位置', addressText: '' });
+            }
+          });
+      }
+
+      function scheduleRegeo() {
+        if (!map) return;
+        var c = map.getCenter();
+        reverseGeocode(c.lat, c.lng);
+      }
+
+      function moveMapTo(lng, lat, zoom) {
+        if (!map) return;
+        map.setZoomAndCenter(zoom || 16, [lng, lat]);
+      }
+
+      function renderTips(tips) {
+        elTips.innerHTML = '';
+        if (!tips || !tips.length) {
+          elTips.classList.remove('show');
+          return;
+        }
+        tips.forEach(function (tip) {
+          var div = document.createElement('div');
+          div.className = 'tip-item';
+          div.innerHTML = '<div class="tip-name">' + (tip.name || '') + '</div><div class="tip-addr">' + (tip.district || '') + (tip.address || '') + '</div>';
+          div.onclick = function () {
+            elSearch.value = tip.name || '';
+            elTips.classList.remove('show');
+            if (placeSearch) {
+              placeSearch.search(tip.name, function (status, result) {
+                if (status === 'complete' && result.poiList && result.poiList.pois.length) {
+                  var poi = result.poiList.pois[0];
+                  var loc = poi.location;
+                  moveMapTo(loc.lng, loc.lat, 17);
+                  applyPick(
+                    poi.name,
+                    poi.name,
+                    ((poi.address || '') + (poi.name ? ' ' + poi.name : '')).trim(),
+                    loc.lat,
+                    loc.lng
+                  );
+                }
+              });
+            }
+          };
+          elTips.appendChild(div);
+        });
+        elTips.classList.add('show');
+      }
+
+      function hideInjectedBackButtons() {
+        var selectors = [
+          '.amap-sug-cancel',
+          '.amap-lib-mobile-backbtn',
+          '.amap-ui-mobi-nav',
+          '.amap-ui-mobi-header'
+        ];
+        selectors.forEach(function (sel) {
+          document.querySelectorAll(sel).forEach(function (el) {
+            el.style.display = 'none';
+          });
+        });
+        document.querySelectorAll('a, button, span, div').forEach(function (el) {
+          var text = (el.textContent || '').trim();
+          if (text === 'Back' || text === '返回' || text === 'back') {
+            var rect = el.getBoundingClientRect();
+            if (rect.width < 120 && rect.height < 48) {
+              el.style.display = 'none';
+            }
+          }
+        });
+      }
+
+      function initPlugins() {
+        AMap.plugin(['AMap.AutoComplete', 'AMap.PlaceSearch', 'AMap.Geocoder'], function () {
+          /* 不绑定 input，避免高德注入带 Back 的移动端搜索 UI */
+          autoComplete = new AMap.AutoComplete({ city: '全国' });
+          placeSearch = new AMap.PlaceSearch({ city: '全国', pageSize: 10, pageIndex: 1 });
+          geocoder = new AMap.Geocoder({ radius: 500, extensions: 'all' });
+
+          autoComplete.on('select', function (e) {
+            if (!e || !e.poi) return;
+            elTips.classList.remove('show');
+            var poi = e.poi;
+            if (poi.location) {
+              moveMapTo(poi.location.lng, poi.location.lat, 17);
+              applyPick(
+                poi.name,
+                poi.name,
+                ((poi.district || '') + (poi.address || poi.name || '')).trim(),
+                poi.location.lat,
+                poi.location.lng
+              );
+            } else if (placeSearch) {
+              placeSearch.search(poi.name, function (status, result) {
+                if (status === 'complete' && result.poiList && result.poiList.pois.length) {
+                  var p = result.poiList.pois[0];
+                  moveMapTo(p.location.lng, p.location.lat, 17);
+                  applyPick(p.name, p.name, ((p.address || '') + ' ' + p.name).trim(), p.location.lat, p.location.lng);
+                }
+              });
+            }
+          });
+
+          elSearch.addEventListener('input', function () {
+            hideInjectedBackButtons();
+            var kw = elSearch.value.trim();
+            if (!kw || !autoComplete) {
+              elTips.classList.remove('show');
+              return;
+            }
+            autoComplete.search(kw, function (status, result) {
+              if (status === 'complete' && result.tips) {
+                renderTips(result.tips.filter(function (t) { return t.name; }));
+              } else {
+                elTips.classList.remove('show');
+              }
+            });
+          });
+
+          hideInjectedBackButtons();
+          setInterval(hideInjectedBackButtons, 800);
+        });
+      }
+
+      function initMap() {
+        map = new AMap.Map('map', {
+          zoom: 16,
+          center: [initLng, initLat],
+          viewMode: '2D',
+          resizeEnable: true
+        });
+        map.on('moveend', function () {
+          clearTimeout(regeoTimer);
+          regeoTimer = setTimeout(scheduleRegeo, 350);
+        });
+        map.on('complete', function () {
+          mapReady = true;
+          syncConfirmState();
+          scheduleRegeo();
+          hideInjectedBackButtons();
+        });
+      }
+
+      function loadAmap() {
+        if (!KEY) {
+          showError('地图 Key 未配置，无法加载选点页');
+          return;
+        }
+        if (SECURITY) {
+          window._AMapSecurityConfig = { securityJsCode: SECURITY };
+        }
+        var s = document.createElement('script');
+        s.src = 'https://webapi.amap.com/maps?v=2.0&key=' + encodeURIComponent(KEY);
+        s.onload = function () {
+          initMap();
+          initPlugins();
+        };
+        s.onerror = function () { showError('高德地图脚本加载失败'); };
+        document.head.appendChild(s);
+      }
+
+      document.getElementById('locateBtn').onclick = function () {
+        if (!navigator.geolocation) {
+          showError('当前浏览器不支持定位');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          moveMapTo(pos.coords.longitude, pos.coords.latitude, 16);
+        }, function () {
+          showError('请允许定位权限');
+        }, { enableHighAccuracy: true, timeout: 10000 });
+      };
+
+      document.getElementById('confirmBtn').onclick = function () {
+        if (elConfirm.disabled) return;
+        var c = map ? map.getCenter() : { lat: current.latitude, lng: current.longitude };
+        postToParent('confirm', {
+          latitude: c.lat,
+          longitude: c.lng,
+          poiName: current.poiName || current.name,
+          addressText: current.addressText,
+          name: current.name || current.poiName
+        });
+      };
+
+      document.addEventListener('click', function (e) {
+        if (!elTips.contains(e.target) && e.target !== elSearch) {
+          elTips.classList.remove('show');
+        }
+      });
+
+      loadAmap();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "date": "2026-06-13",
+  "mealType": "dinner",
+  "mealLabel": "晚餐",
+  "merchantId": "m_self",
+  "merchantName": "绿健食堂",
+  "totalPeople": 0,
+  "totalPortions": 0,
+  "totalAmount": 0,
+  "dishSummary": [],
+  "employeeLines": []
+}
