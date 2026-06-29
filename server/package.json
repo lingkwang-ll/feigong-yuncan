@@ -19,6 +19,7 @@
     "prepare:trial": "ts-node-dev --transpile-only src/scripts/prepare_trial_data.ts",
     "seed:trial-users": "ts-node-dev --transpile-only src/scripts/seed_trial_users.ts",
     "seed:commercial": "ts-node-dev --transpile-only src/scripts/seed_commercial.ts",
+    "init:admin": "node dist/scripts/init-admin-user.js",
     "export:today": "ts-node-dev --transpile-only src/scripts/export_today_summary.ts",
     "check:ready": "powershell -ExecutionPolicy Bypass -File ./scripts/check_ready.ps1",
     "check:security": "powershell -ExecutionPolicy Bypass -File ./scripts/security_check.ps1",
