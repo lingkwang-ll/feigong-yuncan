@@ -4,9 +4,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+
 // Release 签名：复制 key.properties.example 为 key.properties 并填入真实值
 val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 val hasReleaseKeystore = keystorePropertiesFile.exists().also { exists ->
     if (exists) {
         keystoreProperties.load(keystorePropertiesFile.inputStream())
