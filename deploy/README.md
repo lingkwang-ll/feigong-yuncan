@@ -1,6 +1,24 @@
 # 非攻云餐 生产部署包
 
-## 方式 A：Docker 一键启动（推荐，本机 / 云服务器均可）
+## 方式 A：阿里云 ECS 独立路径生产部署（推荐）
+
+与「报价 App 稳定线上版」相同模式：**不覆盖考勤默认 `/`**，云餐走独立路径：
+
+```bash
+chmod +x deploy/deploy-production-ecs.sh deploy/install-nginx-yuncan.sh
+sudo ./deploy/deploy-production-ecs.sh
+```
+
+| 用途 | URL |
+|------|-----|
+| 员工/商家端 | `http://118.31.188.176/yuncan/` |
+| 管理后台 | `http://118.31.188.176/yuncan-admin/` |
+| API | `http://118.31.188.176/yuncan-api/health` |
+| APK 下载 | `http://118.31.188.176/downloads/pheako-yuncan.apk` |
+
+详见 [ECS-DEPLOY.md](./ECS-DEPLOY.md)。
+
+## 方式 B：Docker 本地验证（Windows / Linux）
 
 ```powershell
 # Windows
@@ -25,7 +43,7 @@ docker compose -f deploy/docker-compose.yml up -d --build
 
 数据持久化：Docker volumes `feigong-data`、`feigong-uploads`。
 
-## 方式 B：Linux + PM2 + Nginx（公网服务器）
+## 方式 C：Linux + PM2 + Nginx（公网服务器）
 
 ```bash
 cd server
@@ -45,6 +63,6 @@ pm2 save && pm2 startup
 flutter build web --base-href "/" --dart-define=API_BASE_URL=/api
 ```
 
-## 方式 C：ZIP 离线包
+## 方式 D：ZIP 离线包
 
 执行 `deploy/package-release.ps1` 生成 `deploy/feigong-yuncan-release.zip`。

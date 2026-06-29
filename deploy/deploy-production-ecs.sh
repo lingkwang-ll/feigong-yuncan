@@ -4,7 +4,7 @@
 #
 # 参考「报价 App 稳定线上版」：
 #   - 宿主机 nginx 仅新增 location（/yuncan/ /yuncan-admin/ /yuncan-api/ /downloads/）
-#   - 后端 systemd :3003
+#   - 后端 systemd :3013
 #   - APK 静态下载
 #
 # 用法（在 ECS Ubuntu 上）：
@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/feigong-yuncan}"
 PUBLIC_IP="${PUBLIC_IP:-118.31.188.176}"
-API_PORT="${API_PORT:-3003}"
+API_PORT="${API_PORT:-3013}"
 SKIP_GIT_PULL="${SKIP_GIT_PULL:-0}"
 SKIP_FLUTTER="${SKIP_FLUTTER:-0}"
 SKIP_APK="${SKIP_APK:-0}"

@@ -1,12 +1,17 @@
-# 非攻云餐 一键生产部署（Docker Compose）
+# 非攻云餐 生产部署（阿里云 ECS Ubuntu 24.04）
 #
-# 用法（在项目根目录）：
-#   1. 先执行 deploy/build-release.ps1 或 deploy/build-release.sh 构建前端与后端
-#   2. docker compose -f deploy/docker-compose.yml up -d --build
-#   3. 访问 http://localhost:8080/          员工/商家端
-#      访问 http://localhost:8080/admin/    管理后台
-#      API   http://localhost:8080/api/health
-#      直连  http://localhost:3000/api/health （可选）
+# 多系统共存（推荐）：
+#   - 宿主机 nginx :80 统一入口（deploy/nginx-gateway.conf）
+#   - 本 compose 仅启动 api :3003
+#   - 考勤 3001 / 报价 3002 不受影响
+#
+# 单系统独立模式：
+#   docker compose --profile standalone up -d
+#
+# 用法：
+#   cd deploy && ./deploy.sh
+
+name: feigong-yuncan
 
 services:
   api:
@@ -15,41 +20,55 @@ services:
       dockerfile: ../deploy/docker/Dockerfile
     container_name: feigong-api
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    env_file:
+      - .env.production
     environment:
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: 3000
-      DATABASE_PATH: /data/feigong-yuncan.db
-      UPLOAD_DIR: /uploads
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
-      CORS_ORIGIN: ${CORS_ORIGIN:-*}
-      JWT_SECRET: ${JWT_SECRET:-feigong-local-dev-secret-change-in-prod}
+      DATABASE_PATH: ${DATABASE_PATH:-/data/feigong.db}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/uploads}
+    ports:
+      - "127.0.0.1:3003:3003"
     volumes:
-      - feigong-data:/data
+      - feigong-db:/data
       - feigong-uploads:/uploads
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3003/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 25s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
-  web:
+  # 仅 standalone 模式使用（多系统共存时不要启动，避免与宿主机 nginx 抢 80）
+  nginx:
+    profiles: ["standalone"]
     image: nginx:1.27-alpine
-    container_name: feigong-web
+    container_name: feigong-nginx
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "80:80"
     volumes:
       - ./release/admin-web:/usr/share/nginx/html/admin:ro
       - ./release/employee-app:/usr/share/nginx/html/employee:ro
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       api:
         condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
 volumes:
-  feigong-data:
+  feigong-db:
   feigong-uploads:

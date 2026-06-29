@@ -147,7 +147,7 @@ verify_routes() {
   log "验证路由..."
   curl -fsS -o /dev/null -I "http://127.0.0.1/yuncan/" && log "  ✓ /yuncan/" || warn "  ✗ /yuncan/（需先部署 web 静态文件）"
   curl -fsS -o /dev/null -I "http://127.0.0.1/yuncan-admin/" && log "  ✓ /yuncan-admin/" || warn "  ✗ /yuncan-admin/"
-  curl -fsS "http://127.0.0.1/yuncan-api/health" >/dev/null 2>&1 && log "  ✓ /yuncan-api/health" || warn "  ✗ /yuncan-api/health（需先启动 API :3003）"
+  curl -fsS "http://127.0.0.1/yuncan-api/health" >/dev/null 2>&1 && log "  ✓ /yuncan-api/health" || warn "  ✗ /yuncan-api/health（需先启动 API :3013）"
   curl -fsS -o /dev/null -I "http://127.0.0.1/downloads/pheako-yuncan.apk" && log "  ✓ /downloads/pheako-yuncan.apk" || warn "  ✗ APK 未就绪（可稍后 cp apk）"
 }
 
