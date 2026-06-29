@@ -1,0 +1,22 @@
+[Unit]
+Description=Feigong Yuncan API (Node.js :3003)
+Documentation=file:/opt/feigong-yuncan/server/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/feigong-yuncan/server
+EnvironmentFile=-/opt/feigong-yuncan/server/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+StandardOutput=append:/opt/feigong-yuncan/logs/api.stdout.log
+StandardError=append:/opt/feigong-yuncan/logs/api.stderr.log
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
